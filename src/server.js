@@ -13,18 +13,16 @@ const { loadModel, predict } = require('./inference');
   });
 
   server.route({
+    method: 'GET',
+    path: '/',
+    handler: (request, h) => h.response('Cancer prediction server.')
+  });
+
+  server.route({
     method: 'POST',
-    path: '/predicts',
+    path: '/predict',
     handler: async (request, h) => {
       const { image } = request.payload;
-
-      // Validate image size
-      if (image._data.length > 1000000) {
-        return h.response({
-          status: 'fail',
-          message: 'Payload content length greater than maximum allowed: 1000000'
-        }).code(413);
-      }
 
       try {
         const predictions = await predict(model, image);
@@ -34,16 +32,16 @@ const { loadModel, predict } = require('./inference');
 
         const label = predictions[0] > 0.5 ? 'Cancer' : 'Not Cancer';  // Assuming binary classification
 
-        return {
+        return h.response({
           status: 'success',
-          message: 'Model predicted successfully',
+          message: 'Model is predicted successfully',
           data: {
             id,
             result: label,
             suggestion: label === 'Cancer' ? 'Segera periksa ke dokter!' : 'Tidak perlu khawatir',
             createdAt: new Date().toISOString()
           }
-        };
+        }).code(201);
       } catch (error) {
         console.error('Prediction error:', error);
         return h.response({
@@ -52,12 +50,20 @@ const { loadModel, predict } = require('./inference');
         }).code(400);
       }
     },
-
     options: {
       payload: {
         allow: 'multipart/form-data',
         multipart: true,
-        maxBytes: 1000000 // Set maximum payload size
+        maxBytes: 1000000, // Set maximum payload size,
+        failAction: (request, h, err) => {
+          if (err.output.statusCode === 413) {
+            return h.response({
+              status: 'fail',
+              message: 'Payload content length greater than maximum allowed: 1000000'
+            }).code(413).takeover();
+          }
+          throw err;
+        }
       }
     }
   });
