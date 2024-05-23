@@ -23,7 +23,11 @@ async function getPredictionHistories() {
 
     const histories = [];
     snapshot.forEach(doc => {
-      histories.push(doc.data());
+      const data = doc.data()
+      histories.push({
+        id: data.id,
+        history: data,
+      });
     });
 
     return histories;
