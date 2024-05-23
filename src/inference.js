@@ -2,11 +2,11 @@ const tf = require('@tensorflow/tfjs-node');
 
 function loadModel() {
   const modelUrl = process.env.MODEL_URL;
-  return tf.loadLayersModel(modelUrl);
+  return tf.loadGraphModel(modelUrl);
 }
 
 function predict(model, imageBuffer) {
-  const tensor = tfjs.node
+  const tensor = tf.node
     .decodeJpeg(imageBuffer)
     .resizeNearestNeighbor([224, 224])
     .expandDims()
