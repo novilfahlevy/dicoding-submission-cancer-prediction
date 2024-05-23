@@ -7,8 +7,8 @@ function loadModel() {
 
 function predict(model, imageBuffer) {
   const tensor = tfjs.node
-    .decodeImage(imageBuffer)
-    .resizeNearestNeighbor([150, 150])
+    .decodeJpeg(imageBuffer)
+    .resizeNearestNeighbor([224, 224])
     .expandDims()
     .toFloat();
  
