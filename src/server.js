@@ -11,7 +11,17 @@ const { storeData, getPredictionHistories } = require('./storeData');
 
   const server = Hapi.server({
     host: process.env.NODE_ENV !== 'production' ? 'localhost' : '0.0.0.0',
-    port: 3000
+    port: 3000,
+    routes: {
+      cors: {
+        origin: ['*'], // Allow all origins
+        headers: ['Accept', 'Content-Type', 'Authorization'], // Allowed headers
+        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'], // Expose headers
+        additionalExposedHeaders: ['X-Response-Time'], // Additional exposed headers
+        maxAge: 60,
+        credentials: true // Allow credentials
+      }
+    }
   });
 
   server.route({
