@@ -3,7 +3,7 @@ require('dotenv').config()
 const Hapi = require('@hapi/hapi');
 
 const { loadModel, predict } = require('./inference');
-const storeData = require('./storeData');
+const { storeData, getPredictionHistories } = require('./storeData');
 
 (async () => {
   // Load the model
@@ -72,6 +72,26 @@ const storeData = require('./storeData');
           }
           throw err;
         }
+      }
+    }
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/predict/histories',
+    handler: async (request, h) => {
+      try {
+        const histories = await getPredictionHistories();
+        return h.response({
+          status: 'success',
+          data: histories
+        }).code(200);
+      } catch (error) {
+        console.error('Error fetching prediction histories:', error);
+        return h.response({
+          status: 'fail',
+          message: 'Terjadi kesalahan dalam mengambil data histori prediksi'
+        }).code(500);
       }
     }
   });
