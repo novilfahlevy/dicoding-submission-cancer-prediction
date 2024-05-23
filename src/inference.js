@@ -1,7 +1,7 @@
 const tf = require('@tensorflow/tfjs-node');
 
 function loadModel() {
-  const modelUrl = 'https://storage.googleapis.com/cancer-prediction-storage-2305/models/model.json';
+  const modelUrl = process.env.MODEL_URL;
   return tf.loadLayersModel(modelUrl);
 }
 
