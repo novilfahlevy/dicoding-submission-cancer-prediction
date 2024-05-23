@@ -21,6 +21,8 @@ services:
       NODE_ENV: ${NODE_ENV}
       MODEL_URL: ${MODEL_URL}
       FIRESTORE_DATABASE_ID: ${FIRESTORE_DATABASE_ID}
+    volumes:
+      - ./serviceaccountkey.json:/usr/src/app/serviceaccountkey.json
 
 
 # The commented out section below is an example of how to define a PostgreSQL
