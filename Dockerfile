@@ -19,7 +19,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-COPY serviceaccountkey.json ./serviceaccountkey.json
+COPY serviceaccountkey.json .
 
 RUN npm install
 
