@@ -1,3 +1,6 @@
 /node_modules
 .env
 serviceaccountkey.json
+
+*.bin
+model.json

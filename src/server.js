@@ -1,35 +1,36 @@
-require('dotenv').config()
+require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
-
 const { loadModel, predict } = require('./inference');
 const { storeData, getPredictionHistories } = require('./storeData');
 
 (async () => {
-  // Load the model
-  const model = await loadModel();
+  // Muat model prediksi
+  const predictionModel = await loadModel();
 
   const server = Hapi.server({
-    host: process.env.NODE_ENV !== 'production' ? 'localhost' : '0.0.0.0',
-    port: 3000,
+    host: process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
+    port: process.env.PORT || 8080,
     routes: {
       cors: {
-        origin: ['*'], // Allow all origins
-        headers: ['Accept', 'Content-Type', 'Authorization'], // Allowed headers
-        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'], // Expose headers
-        additionalExposedHeaders: ['X-Response-Time'], // Additional exposed headers
-        maxAge: 60,
-        credentials: true // Allow credentials
+        origin: ['*'], // Izinkan semua domain
+        headers: ['Accept', 'Content-Type', 'Authorization'], // Header yang didukung
+        exposedHeaders: ['WWW-Authenticate', 'Server-Authorization'], // Header yang diungkapkan
+        additionalExposedHeaders: ['X-Response-Time'], // Header tambahan
+        maxAge: 60, // Durasi cache
+        credentials: true // Izinkan cookie dan autentikasi
       }
     }
   });
 
+  // Rute dasar untuk memeriksa status server
   server.route({
     method: 'GET',
     path: '/',
-    handler: (request, h) => h.response('Cancer prediction server.').code(200)
+    handler: (request, h) => h.response('Server prediksi kanker aktif.').code(200)
   });
 
+  // Rute untuk prediksi gambar
   server.route({
     method: 'POST',
     path: '/predict',
@@ -37,30 +38,32 @@ const { storeData, getPredictionHistories } = require('./storeData');
       const { image } = request.payload;
 
       try {
-        // Predict the image
-        const predictions = await predict(model, image);
-        
-        const { nanoid } = await import('nanoid');
-        const id = nanoid();
+        // Lakukan prediksi
+        const predictionResult = await predict(predictionModel, image);
 
-        const label = predictions[0] > 0.5 ? 'Cancer' : 'Non-cancer';
-        const data = {
-          id,
+        // Hasilkan ID unik
+        const { nanoid } = await import('nanoid');
+        const predictionId = nanoid();
+
+        // Tentukan label prediksi
+        const label = predictionResult[0] > 0.5 ? 'Cancer' : 'Non-cancer';
+        const responsePayload = {
+          id: predictionId,
           result: label,
-          suggestion: label === 'Cancer' ? 'Segera periksa ke dokter!' : 'Tidak perlu khawatir',
+          suggestion: label === 'Cancer' ? 'Segera periksa ke dokter!' : 'Penyakit kanker tidak terdeteksi.',
           createdAt: new Date().toISOString()
         };
 
-        // Store prediction into Firestore
-        await storeData(id, data);
+        // Simpan data prediksi ke Firestore
+        await storeData(predictionId, responsePayload);
 
         return h.response({
           status: 'success',
           message: 'Model is predicted successfully',
-          data
+          data: responsePayload
         }).code(201);
       } catch (error) {
-        console.error('Prediction error:', error);
+        console.error('Kesalahan prediksi:', error);
         return h.response({
           status: 'fail',
           message: 'Terjadi kesalahan dalam melakukan prediksi'
@@ -71,8 +74,7 @@ const { storeData, getPredictionHistories } = require('./storeData');
       payload: {
         allow: 'multipart/form-data',
         multipart: true,
-        maxBytes: 1000000,
-        // File size validation
+        maxBytes: 1_000_000, // Batas ukuran 1 MB
         failAction: (request, h, err) => {
           if (err.output.statusCode === 413) {
             return h.response({
@@ -86,6 +88,7 @@ const { storeData, getPredictionHistories } = require('./storeData');
     }
   });
 
+  // Rute untuk mengambil riwayat prediksi
   server.route({
     method: 'GET',
     path: '/predict/histories',
@@ -97,16 +100,16 @@ const { storeData, getPredictionHistories } = require('./storeData');
           data: histories
         }).code(200);
       } catch (error) {
-        console.error('Error fetching prediction histories:', error);
+        console.error('Kesalahan saat mengambil histori prediksi:', error);
         return h.response({
           status: 'fail',
-          message: 'Terjadi kesalahan dalam mengambil data histori prediksi'
+          message: 'Terjadi kesalahan dalam mengambil data histori prediksi.'
         }).code(500);
       }
     }
   });
 
+  // Jalankan server
   await server.start();
-
-  console.log(`Server started at: ${server.info.uri}`);
+  console.log(`Server berjalan pada: ${server.info.uri}`);
 })();
